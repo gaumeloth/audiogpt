@@ -2,7 +2,7 @@ import sounddevice as sd
 import numpy as np
 import keyboard
 import speech_recognition as sr
-import simpleaudio as sa
+import soundfile as sf
 import subprocess
 
 def registra_audio():
@@ -13,11 +13,6 @@ def registra_audio():
         registrazione.append(indata.copy())
 
     stream = sd.InputStream(callback=callback, channels=1, samplerate=fs)
-    
-    # Riproduzione del suono di inizio registrazione (beep)
-    beep = sa.beep()
-    sa.play_buffer(beep, num_channels=1, bytes_per_sample=2, sample_rate=fs)
-
     stream.start()
     
     print("Registrazione in corso... Premi invio per interrompere.")
@@ -28,15 +23,20 @@ def registra_audio():
     
     audio_registrato = np.concatenate(registrazione)
     print("Registrazione terminata")
-    return audio_registrato
 
-def trascrivi_audio(audio_registrato):
+    # Salviamo l'audio su un file temporaneo
+    audio_file_temporaneo = "audio_temp.wav"
+    sf.write(audio_file_temporaneo, audio_registrato, fs)
+    
+    return audio_file_temporaneo
+
+def trascrivi_audio(audio_file_temporaneo):
     recognizer = sr.Recognizer()
     
     # Trascrizione dell'audio
     testo_trascritto = ""
 
-    with sr.AudioFile(audio_registrato) as source:
+    with sr.AudioFile(audio_file_temporaneo) as source:
         audio = recognizer.record(source)  # Caricamento dell'audio
 
         try:
@@ -67,9 +67,13 @@ def formatta_risposta(stringa, stringa_da_rimuovere):
         stringa_modificata = stringa_unificata
     return stringa_modificata
 
-# Esempio di utilizzo
-audio_registrato = registra_audio()
-testo_trascritto = trascrivi_audio(audio_registrato)
-risposta_tgpt = richiama_tgpt(testo_trascritto)
-risposta_formattata = formatta_risposta(risposta_tgpt,testo_trascritto) 
-print("Risposta da tgpt:", risposta_formattata)
+def main():
+    audio_registrato = registra_audio()
+    testo_trascritto = trascrivi_audio(audio_registrato)
+    print("Domanda capita:", testo_trascritto)
+    risposta_tgpt = richiama_tgpt(testo_trascritto)
+    risposta_formattata = formatta_risposta(risposta_tgpt, testo_trascritto) 
+    print("Risposta da tgpt:", risposta_formattata)
+
+if __name__ == "__main__":
+    main()
